@@ -1,43 +1,53 @@
-import pandas as pd
-import numpy as np
-from brs_data_preprocessing import get_preprocessed_data
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import NearestNeighbors
+from brs_data_preprocessing import get_preprocessed_data
 
-users_csv = 'C:/Users/austi/Desktop/ML/group project/archive/Users.csv'
-ratings_csv = 'C:/Users/austi/Desktop/ML/group project/archive/Ratings.csv'
-books_csv = 'C:/Users/austi/Desktop/ML/group project/archive/Books.csv'
+def print_book_titles_by_isbn(recommended_isbns, books_df):
+    """
+    Prints out the book titles for the given ISBNs.
+
+    :param recommended_isbns: a list of ISBNs for the recommended books
+    :param books_df: the dataframe containing book information
+    """
+    # Loop over the recommended ISBNs
+    for isbn in recommended_isbns:
+        # Get the book title corresponding to the current ISBN
+        book_title = books_df.loc[books_df['ISBN'] == isbn, 'Book-Title'].iloc[0]
+        print(f'ISBN: {isbn} - Title: {book_title}')
+
+# Assuming the csv files are in working directory...
+users_csv = 'Users.csv'
+ratings_csv = 'Ratings.csv'
+books_csv = 'Books.csv'
 
 users_df, books_df, ratings_df = get_preprocessed_data(users_csv, books_csv, ratings_csv)
+
+# Weights since who cares about a publisher
+title_weight = 3
+author_weight = 2
+publisher_weight = 1
+
+books_df['combined_features'] = (books_df['Book-Title'].str.repeat(title_weight) + " " +
+                                 books_df['Book-Author'].str.repeat(author_weight) + " " +
+                                 books_df['Publisher'].str.repeat(publisher_weight))
 
 # Initialize the TF-IDF vectorizer
 tfidf_vectorizer = TfidfVectorizer()
 
-# Fit and transform the 'Book-Title' column
-tfidf_matrix = tfidf_vectorizer.fit_transform(books_df['Book-Title'])
+# Fit and transform the 'combined_features' column
+tfidf_matrix = tfidf_vectorizer.fit_transform(books_df['combined_features'])
 
-# Initialize the NearestNeighbors model
+# Initialize the NearestNeighbors
 knn_model = NearestNeighbors(metric='cosine', algorithm='brute')
 
-# Fit the model on the TF-IDF matrix
+# Fit the model
 knn_model.fit(tfidf_matrix)
 
-# Assuming you have a book ISBN you want to find similar books for
-target_isbn = '0446677450'#'0446677450'312953453
-
-# Check if the ISBN exists in the DataFrame
-if target_isbn in books_df['ISBN'].values:
-    book_index = books_df.loc[books_df['ISBN'] == target_isbn].index[0]
-    distances, indices = knn_model.kneighbors(tfidf_matrix[book_index], n_neighbors=3)
-    
-    # Get the similar book indices
-    similar_books = indices.flatten()
-    recommended_books_isbn = books_df.iloc[similar_books]['ISBN']
-    #print(recommended_books_isbn)
-else:
-    print(f"No book found with ISBN {target_isbn}")
-
-
-
+# Example: Recommend books similar to the book with ISBN '0060176059'
+book_index = books_df.loc[books_df['ISBN'] == '0060176059'].index[0]
+distances, indices = knn_model.kneighbors(tfidf_matrix[book_index], n_neighbors=5)
+similar_books = indices.flatten()
+recommended_books_isbn = books_df.iloc[similar_books]['ISBN']
+print_book_titles_by_isbn(recommended_books_isbn, books_df)
 
 
