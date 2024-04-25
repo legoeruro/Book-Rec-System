@@ -9,7 +9,15 @@ readme = "README.md"
 python = "^3.10"
 numpy = "^1.26.4"
 pandas = "^2.2.2"
+scikit-learn = "^1.4.2"
+torch = "1.12.1+cu113"
+torchvision = "0.13.1+cu113"
+torchaudio = "0.12.1"
 
+[[tool.poetry.source]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu113"
+secondary = true
 
 [build-system]
 requires = ["poetry-core"]
