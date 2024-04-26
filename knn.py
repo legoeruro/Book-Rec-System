@@ -9,13 +9,11 @@ def print_book_titles_by_isbn(recommended_isbns, books_df):
     :param recommended_isbns: a list of ISBNs for the recommended books
     :param books_df: the dataframe containing book information
     """
-    # Loop over the recommended ISBNs
     for isbn in recommended_isbns:
-        # Get the book title corresponding to the current ISBN
         book_title = books_df.loc[books_df['ISBN'] == isbn, 'Book-Title'].iloc[0]
         print(f'ISBN: {isbn} - Title: {book_title}')
 
-# Assuming the csv files are in working directory...
+# Asume the csv files are in the working directory???
 users_csv = 'Users.csv'
 ratings_csv = 'Ratings.csv'
 books_csv = 'Books.csv'
@@ -31,16 +29,12 @@ books_df['combined_features'] = (books_df['Book-Title'].str.repeat(title_weight)
                                  books_df['Book-Author'].str.repeat(author_weight) + " " +
                                  books_df['Publisher'].str.repeat(publisher_weight))
 
-# Initialize the TF-IDF vectorizer
 tfidf_vectorizer = TfidfVectorizer()
 
-# Fit and transform the 'combined_features' column
 tfidf_matrix = tfidf_vectorizer.fit_transform(books_df['combined_features'])
 
-# Initialize the NearestNeighbors
 knn_model = NearestNeighbors(metric='cosine', algorithm='brute')
 
-# Fit the model
 knn_model.fit(tfidf_matrix)
 
 # Example: Recommend books similar to the book with ISBN '0060176059'
