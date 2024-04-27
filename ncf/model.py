@@ -24,10 +24,10 @@ class NCFNet(nn.Module):
         self.ulv_embedding = nn.Embedding(num_users, embedding_dim)
 
         mlp_input_size = embedding_dim * 2  # Concatenation of embeddings fed into the mlp layers
-        self.mlp_layers = torch_ops.MLP(mlp_input_size, list(mlp_layer_sizes), dropout=0.2, inplace=False)
+        self.mlp_layers = torch_ops.MLP(mlp_input_size, list(mlp_layer_sizes), inplace=False)
         self.mlp_layers.append(nn.Linear(mlp_layer_sizes[-1], 1))
 
-    def forward(self, user_vec, item_vec):
+    def forward(self, item_vec, user_vec):
         concat_ed = torch.concat((self.ilv_embedding(item_vec), self.ulv_embedding(user_vec)), dim=1)
         output = torch.sigmoid(self.mlp_layers(concat_ed))
         return output.view(-1)

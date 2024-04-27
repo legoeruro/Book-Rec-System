@@ -39,11 +39,7 @@ class BookRecSystemDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        return {
-                "user_id": self.data["e_uid"][idx],
-                "book_id": self.data["e_isbn"][idx],
-                "rating": self.data["Book-Rating"][idx]
-        }
+        return self.data["e_uid"][idx], self.data["e_isbn"][idx], self.data["Book-Rating"][idx]
 
 
 def env_setup():
@@ -94,7 +90,7 @@ def train_model(model, dataloader):
     model.train()
 
     optimizer = torch.optim.Adam(model.parameters())
-    loss_fn = nn.CrossEntropyLoss()
+    loss_fn = nn.MSELoss()
 
     print('-' * 20)
     print("Training: NCFNet")
@@ -106,23 +102,28 @@ def train_model(model, dataloader):
         print('-' * 20)
 
         total_loss = 0.0
+        avg_diff = 0.0
+        b_i = 0
 
-        for data in tqdm(dataloader):
-            user_ids = data["user_id"].to(device)
-            book_ids = data["book_id"].to(device)
-            ratings = data["rating"].to(device)
+        for user_ids, book_ids, ratings in tqdm(dataloader):
+            user_ids = user_ids.to(device)
+            book_ids = book_ids.to(device)
+            ratings = ratings.to(device)
 
             optimizer.zero_grad()
             with torch.set_grad_enabled(True) and torch.autograd.set_detect_anomaly(True):
-                outputs = model(user_ids, book_ids)
-                loss = loss_fn(outputs, (ratings.float() / 10))
+                outputs = model(book_ids, user_ids)
+                loss = loss_fn(outputs, ratings.float() / 10)
 
                 loss.backward()
                 optimizer.step()
 
                 total_loss += loss.item()
+                avg_diff += torch.abs(10 * outputs - ratings).sum().item() / len(ratings)
+                b_i += 1
 
-        print("\nEpoch Summary: Train Loss: {:.4f}".format(total_loss / len(dataloader.dataset)))
+        print("\nEpoch Summary: Train Loss: {:.4f} | Average Rating Difference: {:.4f}".format(
+            total_loss / len(dataloader.dataset), avg_diff / b_i))
 
     return model
 
@@ -135,21 +136,26 @@ def test_model(model, dataloader):
 
     model.eval()
 
-    loss_fn = nn.CrossEntropyLoss()
+    loss_fn = nn.MSELoss()
     total_loss = 0.0
+    avg_diff = 0.0
+    b_i = 0
 
     with torch.no_grad():
-        for data in tqdm(dataloader):
-            user_ids = data["user_id"].to(device)
-            book_ids = data["book_id"].to(device)
-            ratings = data["rating"].to(device)
+        for user_ids, book_ids, ratings in tqdm(dataloader):
+            user_ids = user_ids.to(device)
+            book_ids = book_ids.to(device)
+            ratings = ratings.to(device)
 
-            outputs = model(user_ids, book_ids)
-            loss = loss_fn(outputs, (ratings.float() / 10))
+            outputs = model(book_ids, user_ids)
+            loss = loss_fn(outputs, ratings.float() / 10)
 
             total_loss += loss.item()
+            avg_diff += torch.abs(10 * outputs - ratings).sum().item() / len(ratings)
+            b_i += 1
 
-    print("\nTest Summary: Test Loss: {:.4f}".format(total_loss / len(dataloader.dataset)))
+    print("\nEpoch Summary: Test Loss: {:.4f} | Average Rating Difference: {:.4f}".format(
+        total_loss / len(dataloader.dataset), avg_diff / b_i))
 
 
 def main():
