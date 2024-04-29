@@ -92,16 +92,17 @@ def train_model(model, dataloader):
     optimizer = torch.optim.Adam(model.parameters())
     loss_fn = nn.MSELoss()
 
-    print('-' * 20)
-    print("Training: NCFNet")
-    print('-' * 20 + '\n')
+    print('-' * 30)
+    print(f"Training: {model.__class__.__name__}")
+    print('-' * 30 + '\n')
 
     for epoch in range(epochs):
-        print('-' * 20)
+        print('-' * 30)
         print("Epoch: " + str(epoch + 1) + " out of " + str(epochs))
-        print('-' * 20)
+        print('-' * 30)
 
         total_loss = 0.0
+        total_squared_error = 0.0
         avg_diff = 0.0
         b_i = 0
 
@@ -119,11 +120,13 @@ def train_model(model, dataloader):
                 optimizer.step()
 
                 total_loss += loss.item()
+                total_squared_error += torch.square(10 * outputs - ratings).sum().item()
                 avg_diff += torch.abs(10 * outputs - ratings).sum().item() / len(ratings)
                 b_i += 1
 
-        print("\nEpoch Summary: Train Loss: {:.4f} | Average Rating Difference: {:.4f}".format(
-            total_loss / len(dataloader.dataset), avg_diff / b_i))
+        print("\nEpoch Summary: Train Loss: {:.4f} | Average Rating Difference: {:.4f} | RMSE: {:.4f}".format(
+            total_loss / len(dataloader.dataset), avg_diff / b_i,
+            np.sqrt(total_squared_error / len(dataloader.dataset))))
 
     return model
 
@@ -131,13 +134,14 @@ def train_model(model, dataloader):
 def test_model(model, dataloader):
 
     print('-' * 20)
-    print("Testing: NCFNet")
+    print(f"Testing: {model.__class__.__name__}")
     print('-' * 20)
 
     model.eval()
 
     loss_fn = nn.MSELoss()
     total_loss = 0.0
+    total_squared_error = 0.0
     avg_diff = 0.0
     b_i = 0
 
@@ -151,11 +155,12 @@ def test_model(model, dataloader):
             loss = loss_fn(outputs, ratings.float() / 10)
 
             total_loss += loss.item()
+            total_squared_error += torch.square(10 * outputs - ratings).sum().item()
             avg_diff += torch.abs(10 * outputs - ratings).sum().item() / len(ratings)
             b_i += 1
 
-    print("\nEpoch Summary: Test Loss: {:.4f} | Average Rating Difference: {:.4f}".format(
-        total_loss / len(dataloader.dataset), avg_diff / b_i))
+    print("\nEpoch Summary: Test Loss: {:.4f} | Average Rating Difference: {:.4f} | RMSE: {:.4f}".format(
+        total_loss / len(dataloader.dataset), avg_diff / b_i, np.sqrt(total_squared_error / len(dataloader.dataset))))
 
 
 def main():
@@ -167,7 +172,7 @@ def main():
     model = NCFNet(num_items, num_users, batch_size)
 
     if use_pretrained:
-        weights = torch.load(f"{model_output}/BRS_NCFNet.pth", map_location=device)
+        weights = torch.load(f"{model_output}/BRS_{model.__class__.__name__}.pth", map_location=device)
         model.load_state_dict(weights)
         model = model.to(device)
     else:
@@ -176,7 +181,7 @@ def main():
         if not os.path.exists(model_output):
             os.makedirs(model_output)
 
-        torch.save(model.state_dict(), f"{model_output}/BRS_NCFNet.pth")
+        torch.save(model.state_dict(), f"{model_output}/BRS_{model.__class__.__name__}.pth")
 
     test_model(model, test_dataloader)
 
