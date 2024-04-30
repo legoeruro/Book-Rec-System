@@ -114,14 +114,14 @@ def train_model(model, dataloader):
             optimizer.zero_grad()
             with torch.set_grad_enabled(True) and torch.autograd.set_detect_anomaly(True):
                 outputs = model(book_ids, user_ids)
-                loss = loss_fn(outputs, ratings.float() / 10)
+                loss = loss_fn(outputs, ratings.float())
 
                 loss.backward()
                 optimizer.step()
 
                 total_loss += loss.item()
-                total_squared_error += torch.square(10 * outputs - ratings).sum().item()
-                avg_diff += torch.abs(10 * outputs - ratings).sum().item() / len(ratings)
+                total_squared_error += torch.square(outputs - ratings).sum().item()
+                avg_diff += torch.abs(outputs - ratings).sum().item() / len(ratings)
                 b_i += 1
 
         print("\nEpoch Summary: Train Loss: {:.4f} | Average Rating Difference: {:.4f} | RMSE: {:.4f}".format(
@@ -152,11 +152,11 @@ def test_model(model, dataloader):
             ratings = ratings.to(device)
 
             outputs = model(book_ids, user_ids)
-            loss = loss_fn(outputs, ratings.float() / 10)
+            loss = loss_fn(outputs, ratings.float())
 
             total_loss += loss.item()
-            total_squared_error += torch.square(10 * outputs - ratings).sum().item()
-            avg_diff += torch.abs(10 * outputs - ratings).sum().item() / len(ratings)
+            total_squared_error += torch.square(outputs - ratings).sum().item()
+            avg_diff += torch.abs(outputs - ratings).sum().item() / len(ratings)
             b_i += 1
 
     print("\nEpoch Summary: Test Loss: {:.4f} | Average Rating Difference: {:.4f} | RMSE: {:.4f}".format(

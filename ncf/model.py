@@ -36,5 +36,5 @@ class NCFNet(nn.Module):
 
     def forward(self, item_vec, user_vec):
         concat_ed = torch.concat((self.ilv_embedding(item_vec), self.ulv_embedding(user_vec)), dim=1)
-        output = torch.sigmoid(self.mlp_layers(concat_ed))
+        output = self.mlp_layers(concat_ed)
         return output.view(-1)
