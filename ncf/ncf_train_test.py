@@ -21,7 +21,7 @@ from torch.utils.data import *
 # Params
 data_path = "data"
 model_output = "trained_models"
-epochs = 10
+epochs = 5
 batch_size = 64
 use_pretrained = False
 
