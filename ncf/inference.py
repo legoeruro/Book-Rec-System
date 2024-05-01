@@ -46,13 +46,13 @@ def init_data_for_inference():
     return merged_ratings
 
 
-def get_top_k_predictions(user_id, top_k: int, df=None):
+def get_top_k_predictions(user_id, pool: int, df=None):
     """
     Top K book choices (ISBNs) for a user based on ratings.\n
     \nIf the user has not left any ratings, the top 10 rated books are returned instead.
     :param df: Can optionally pre-initialize the dataframe via init_data_for_inference to save time
     :param user_id: User ID
-    :param top_k: Number of top-rated books to consider (reduces run-time for larger datasets)
+    :param pool: Number of top-rated books to consider (reduces run-time for larger datasets)
     :return: List of ISBNs for top K book choices
     """
 
@@ -62,7 +62,7 @@ def get_top_k_predictions(user_id, top_k: int, df=None):
     df_uids = df.loc[df["User-ID"] == user_id]
 
     if len(df_uids) == 0:
-        return df.loc[df["Book-Rating"] == max(list(df["Book-Rating"]))].iloc[:k]["ISBN"]
+        return df.loc[df["Book-Rating"] == max(list(df["Book-Rating"]))].iloc[:pool]["ISBN"]
     else:
         e_uid = df_uids.iloc[0]["e_uid"]
 
@@ -74,10 +74,10 @@ def get_top_k_predictions(user_id, top_k: int, df=None):
         model.load_state_dict(weights)
         model = model.to(device)
 
-        top_sub_books = df.loc[df["Book-Rating"] == max(list(df["Book-Rating"]))].iloc[:top_k]
+        top_sub_books = df.loc[df["Book-Rating"] == max(list(df["Book-Rating"]))].iloc[:pool]
         top_sub_books.reset_index(inplace=True)
 
-        uid_tensor = torch.IntTensor([e_uid] * top_k).to(device)
+        uid_tensor = torch.IntTensor([e_uid] * pool).to(device)
         bid_tensor = torch.IntTensor(top_sub_books["e_isbn"].to_list()).to(device)
 
         ratings = model(bid_tensor, uid_tensor)
@@ -88,4 +88,4 @@ def get_top_k_predictions(user_id, top_k: int, df=None):
         top_k_isbn = top_sub_books.iloc[k_sorted_indices]
         top_k_isbn.drop_duplicates(inplace=True, subset=["ISBN"])
 
-        return top_k_isbn["ISBN"]
+        return top_k_isbn["ISBN"], ratings[k_sorted_indices]
